@@ -1,11 +1,13 @@
-import React from 'react'
+import React from "react";
 
-const page = () => {
+const DashboardPage = () => {
   return (
-    <div className='mt-40'>
-      sdsd
+    <div className="px-5">
+     {/* Budget Progress  */}
+     {/* Dashboard Overview */}
+     {/* Accounts Grid  */}
     </div>
-  )
-}
+  );
+};
 
-export default page
+export default DashboardPage;
