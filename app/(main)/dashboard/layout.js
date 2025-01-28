@@ -1,5 +1,6 @@
 import React, { Suspense } from "react";
 import { BarLoader } from "react-spinners";
+import { Toaster } from "sonner";
 const DashboardLayout = ({ children }) => {
   return (
     <div className="px-5 mt-28">
@@ -9,6 +10,7 @@ const DashboardLayout = ({ children }) => {
       >
         {children}
       </Suspense>
+      <Toaster richColors/>
     </div>
   );
 };

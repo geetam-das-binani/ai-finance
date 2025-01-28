@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Drawer,
   DrawerClose,
@@ -21,8 +21,18 @@ import {
 } from "./ui/select";
 import { Switch } from "./ui/switch";
 import { Button } from "./ui/button";
+import { useFetch } from "@/hooks/useFetch";
+import { createAccount } from "@/actions/dashboard";
+import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 const CreateAccountDrawer = ({ children }) => {
   const [open, setOpen] = useState(false);
+  const {
+    data: newAccount,
+    error,
+    fn: createAccountFn,
+    loading: createAccountLoading,
+  } = useFetch(createAccount);
   const {
     register,
     handleSubmit,
@@ -39,9 +49,22 @@ const CreateAccountDrawer = ({ children }) => {
       balance: "",
     },
   });
+  useEffect(() => {
+    if (!createAccountLoading && newAccount) {
+      setOpen(false);
+      reset();
+      toast.success("Account Created Successfully");
+    }
+  }, [createAccountLoading, newAccount]);
+
+  useEffect(() => {
+    if (error && !createAccountLoading) {
+      toast.error(error);
+    }
+  }, [error, createAccountLoading]);
 
   const onSubmit = async (data) => {
-    console.log(data);
+    await createAccountFn(data);
   };
   return (
     <Drawer open={open} onOpenChange={setOpen}>
@@ -121,15 +144,26 @@ const CreateAccountDrawer = ({ children }) => {
               />
             </div>
 
-            <div className="space-x-2">
+            <div className="flex gap-4">
               <DrawerClose asChild>
                 <Button type="button" variant="outline" className="flex-1">
                   Cancel
                 </Button>
               </DrawerClose>
-                <Button type="submit"  className="flex-1">
-                  Create Account
-                </Button>
+              <Button
+                type="submit"
+                className="flex-1"
+                disabled={createAccountLoading}
+              >
+                {createAccountLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Creating...
+                  </>
+                ) : (
+                  "Create Account"
+                )}
+              </Button>
             </div>
           </form>
         </div>
