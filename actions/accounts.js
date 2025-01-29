@@ -52,6 +52,49 @@ export const updateDefaultAccount = async (accountId) => {
     return { data: serializeTransaction(account), success: true };
   } catch (error) {
     console.log(error.message);
-    return { error: error.message  || "Something went wrong", success: false };
+    return { error: error.message || "Something went wrong", success: false };
+  }
+};
+
+export const getAccountWithTransactions = async (accountId) => {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Unauthorized");
+
+  try {
+    const user = await db.user.findUnique({
+      where: {
+        clerkUserId: userId,
+      },
+    });
+    if (!user) throw new Error("User not found");
+
+    const account = await db.account.findUnique({
+      where: {
+        id: accountId,
+        userId: user.id,
+      },
+      include: {
+        transactions: {
+          orderBy: {
+            createdAt: "desc",
+          },
+        },
+        _count: {
+          select: {
+            transactions: true,
+          },
+        },
+      },
+    });
+
+    if (!account) return null;
+
+    return {
+      ...serializeTransaction(account),
+      transactions: account.transactions.map(serializeTransaction),
+    };
+  } catch (error) {
+    console.log(error.message);
+    return { error: error.message || "Something went wrong", success: false };
   }
 };
