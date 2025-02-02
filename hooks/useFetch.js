@@ -7,12 +7,14 @@ export const useFetch = (cb) => {
   const [loading, setLoading] = useState(false);
 
   const fn = useCallback(async(...args) => {
+   
       try {
         setLoading(true);
         setError(null);
+      
         const response = await cb(...args);
         
-        setData(response.data);
+        setData(response.data  || response.success);
       } catch (error) {
         const errorMessage = error?.message || "Something went wrong";
         setError(errorMessage);
