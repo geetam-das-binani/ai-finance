@@ -1,13 +1,13 @@
 "use client";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  Card,
-  CardContent,
-  
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Select, SelectItem } from "@/components/ui/select";
-import { SelectContent, SelectTrigger } from "@radix-ui/react-select";
+  Select,
+  SelectItem,
+  SelectContent,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
 import { endOfDay, format, startOfDay, subDays } from "date-fns";
 import React, { useState, useMemo } from "react";
 import {
@@ -15,6 +15,7 @@ import {
   BarChart,
   CartesianGrid,
   Legend,
+  Rectangle,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -25,7 +26,7 @@ const DATE_RANGES = {
   "7D": { label: "Last 7 Days", days: 7 },
   "1M": { label: "Last Month", days: 30 },
   "3M": { label: "Last 3 Months", days: 90 },
-  "6M": { label: "Last 3 Months", days: 180 },
+  "6M": { label: "Last 6 Months", days: 180 },
   ALL: { label: "All Time", days: null },
 };
 const AccountChart = ({ transactions }) => {
@@ -74,7 +75,7 @@ const AccountChart = ({ transactions }) => {
     );
   }, [dateRange, transactions]);
 
-  const totals = useMemo(() => {
+  const total = useMemo(() => {
     return filteredData.reduce(
       (acc, t) => ({
         expense: acc.expense + t.expense,
@@ -86,47 +87,81 @@ const AccountChart = ({ transactions }) => {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle> Transaction Overview</CardTitle>
-        <Select>
-            <SelectTrigger></SelectTrigger>
-            <SelectContent>
-                <SelectItem value="7D">Last 7 Days</SelectItem>
-                
-            </SelectContent>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-7">
+        <CardTitle className="text-base font-normal">
+          Transaction Overview
+        </CardTitle>
+        <Select defaultValue={dateRange} onValueChange={setDateRange}>
+          <SelectTrigger className="w-[140px]">
+            <SelectValue placeholder="Select range" />
+          </SelectTrigger>
+          <SelectContent>
+            {Object.entries(DATE_RANGES).map(([key, { label }]) => (
+              <SelectItem key={key} value={key}>
+                {label}
+              </SelectItem>
+            ))}
+          </SelectContent>
         </Select>
       </CardHeader>
-      <CardContent></CardContent>
+      <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="text-center">
+          <p className="text-muted-foreground">Total Income</p>
+          <p className="text-lg font-bold text-green-500">
+            ${total.income.toFixed(2)}
+          </p>
+        </div>
+        <div className="text-center">
+          <p className="text-muted-foreground">Total Expenses</p>
+          <p className="text-lg font-bold text-red-500">
+            ${total.expense.toFixed(2)}
+          </p>
+        </div>
+        <div className="text-center">
+          <p className="text-muted-foreground">Net</p>
+          <p className="text-lg font-bold text-green-500">
+            ${(total.income - total.expense).toFixed(2)}
+          </p>
+        </div>
+      </CardContent>
 
-      {/* <ResponsiveContainer width="100%" height="100%">
-        <BarChart
-          width={500}
-          height={300}
-          data={data}
-          margin={{
-            top: 5,
-            right: 30,
-            left: 20,
-            bottom: 5,
-          }}
-        >
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="name" />
-          <YAxis />
-          <Tooltip />
-          <Legend />
-          <Bar
-            dataKey="pv"
-            fill="#8884d8"
-            activeBar={<Rectangle fill="pink" stroke="blue" />}
-          />
-          <Bar
-            dataKey="uv"
-            fill="#82ca9d"
-            activeBar={<Rectangle fill="gold" stroke="purple" />}
-          />
-        </BarChart>
-      </ResponsiveContainer> */}
+      <div className="h-[300px]">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart
+          
+            data={filteredData}
+            margin={{
+              top: 10,
+              right: 10,
+              left: 10,
+              bottom: 0,
+            }}
+          >
+            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+            <XAxis dataKey="date" />
+            <YAxis
+            fontSize={12}
+            tickLine={false}
+            axisLine={false}
+            tickFormatter={(value) => `$${value}`} 
+            />
+            <Tooltip formatter={(value) => [`$${value}`,undefined]}  />
+            <Legend />
+            <Bar
+              dataKey="income"
+              fill="#22c55e"
+              radius={[4,4,0,0]}
+              
+            />
+            <Bar
+              dataKey="expense"
+              fill="#ef4444"
+              radius={[4,4,0,0]}
+              
+            />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
     </Card>
   );
 };
