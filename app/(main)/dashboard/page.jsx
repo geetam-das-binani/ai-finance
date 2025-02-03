@@ -17,14 +17,16 @@ const DashboardPage = async () => {
   }
 
   return (
-    <div className="px-5">
+    <div className="space-y-8">
       {/* Budget Progress  */}
-      {defaultAccount && (
-        <BudgetProgress
-        initialBudget={budgetData?.budget}
-          currentExpenses={budgetData?.currentExpenses || 0}
-        />
-      )}
+     
+        {defaultAccount && (
+          <BudgetProgress
+            initialBudget={budgetData?.budget}
+            currentExpenses={budgetData?.currentExpenses || 0}
+          />
+        )}
+      
       {/* Dashboard Overview */}
       {/* Accounts Grid  */}
       <div className="grid  md:grid-cols-2 lg:grid-cols-3 gap-4">

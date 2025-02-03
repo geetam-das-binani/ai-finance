@@ -44,6 +44,7 @@ export const getCurrentBudget = async (accountId) => {
         amount: true,
       },
     });
+    
     return {
       budget: budget ? { ...budget, amount: budget.amount.toNumber() } : null,
       currentExpenses: expenses._sum?.amount

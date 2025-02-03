@@ -12,29 +12,50 @@ import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { useFetch } from "@/hooks/useFetch";
 import { Check, Pencil, X } from "lucide-react";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 const BudgetProgress = ({ initialBudget, currentExpenses }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [newBudget, setNewBudget] = useState(
     initialBudget?.amount?.toString() || ""
   );
-
-  const percentUsed = initialBudget
-    ? (currentExpenses / initialBudget?.amount) * 100
-    : 0;
-
-  const handleCancelBudget = () => {
-    setIsEditing(false);
-    setNewBudget(budget?.amount?.toString() || "");
-  };
-  const handleUpdateBudget = () => {};
   const {
     loading: isLoading,
     fn: updateBudgetFn,
     data: updatedBudget,
     error,
   } = useFetch(updateBudget);
+
+  const percentUsed = initialBudget
+    ? (currentExpenses / initialBudget?.amount) * 100
+    : 0;
+
+  
+  const handleCancelBudget = () => {
+    setIsEditing(false);
+    setNewBudget(budget?.amount?.toString() || "");
+  };
+  const handleUpdateBudget = async () => {
+    const amount = parseFloat(newBudget);
+    if (isNaN(amount) || amount <= 0) {
+      toast.warning("Please enter a valid amount");
+      return;
+    }
+    await updateBudgetFn(amount);
+    setIsEditing(false);
+  };
+
+  useEffect(() => {
+    if (!isLoading && updatedBudget) {
+      toast.success("Budget updated successfully");
+    }
+  }, [updatedBudget, isLoading]);
+  useEffect(() => {
+    if (!isLoading && error) {
+      toast.error(error.message || "Failed to update budget");
+    }
+  }, [updatedBudget, error]);
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
