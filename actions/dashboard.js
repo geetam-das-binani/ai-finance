@@ -93,10 +93,10 @@ export const getUserAccounts = async () => {
         },
       },
     });
-    
-    const serializedAccounts = accounts.map(serializeTransaction)
-   
-    return serializedAccounts
+
+    const serializedAccounts = accounts.map(serializeTransaction);
+
+    return serializedAccounts;
   } catch (error) {
     console.log(error.message);
   }
