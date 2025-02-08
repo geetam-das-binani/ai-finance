@@ -1,8 +1,11 @@
 import { db } from "@/lib/prisma";
 import { inngest } from "./client";
+import sendEmail from "@/actions/send-email";
+import EmailTemplate from "@/emails/template";
 
-export const helloWorld = inngest.createFunction(
-  { name: "Check Budget Alerts" },
+export const checkBudgetAlert = inngest.createFunction(
+  { id: "check-budget-alert" },
+  // { event: "test/check-budget-alert" },
   { cron: "0 */6 * * *" },
   async ({ step }) => {
     const budgets = step.run("get-budget", async () => {
@@ -23,17 +26,67 @@ export const helloWorld = inngest.createFunction(
 
     for (const budget of budgets) {
       const defaultAccount = budget.user.accounts[0];
-      if (defaultAccount.balance >= budget.amount) {
-        await step.sendEvent("budget-alert", {
-          data: {
+      if (!defaultAccount) continue; // skip if no default account
+
+      await step.run(`check-budget-${budget.id}`, async () => {
+        const startDate = new Date();
+        startDate.setDate(1); //Start of current month
+        const expenses = await db.transaction.aggregate({
+          where: {
             userId: budget.userId,
-            budgetId: budget.id,
-            amount: budget.amount,
-            balance: defaultAccount.balance,
+            type: "EXPENSE",
+            date: {
+              gte: startDate, // for the current month and above
+            },
+            accountId: defaultAccount.id,
           },
-          user: budget.userId,
+          _sum: {
+            amount: true,
+          },
         });
-      }
+        const totalExpenses = expenses._sum.amount?.toNumber() || 0;
+        const budgetAmount = budget.amount.toNumber();
+        const percentageUsed = (totalExpenses / budgetAmount) * 100;
+
+        if (
+          percentageUsed >= 80 &&
+          (!budget.lastAlertSent ||
+            isNewMonth(new Date(budget.lastAlertSent), new Date()))
+        ) {
+          // send email
+
+          await sendEmail({
+            react: EmailTemplate({
+              userName: budget.user.name,
+              type: "budget-alert",
+              data: {
+                percentageUsed,
+                budgetAmount: parseInt(budgetAmount).toFixed(1),
+                totalExpenses: parseInt(totalExpenses).toFixed(1),
+                accountName: defaultAccount.name,
+              },
+            }),
+            to: budget.user.email,
+            subject: `Budget Alert for ${defaultAccount.name}`,
+          });
+          // update last alert sent date
+          await db.budget.update({
+            where: {
+              id: budget.id,
+            },
+            data: {
+              lastAlertSent: new Date(),
+            },
+          });
+        }
+      });
     }
   }
 );
+
+function isNewMonth(lastAlertDate, currentDate) {
+  return (
+    lastAlertDate.getMonth() !== currentDate.getMonth() ||
+    lastAlertDate.getFullYear() !== currentDate.getFullYear()
+  );
+}
