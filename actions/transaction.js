@@ -1,7 +1,15 @@
+"use server"
+
 import { db } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 
+function serializeAmount(transaction) {
+  return {
+    ...transaction,
+    amount: transaction.amount.toNumber(),
+  };
+}
 export const createTransaction = async (data) => {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
@@ -30,7 +38,7 @@ export const createTransaction = async (data) => {
           userId: user.id,
           nextRecurringDate:
             data.isRecurring && data.recurringInterval
-              ? calculateNextRecurringDate(data.date, data.recurringInterval)
+              ? calculateNextRecurringDate(data?.date, data?.recurringInterval)
               : null,
         },
       });
@@ -48,13 +56,14 @@ export const createTransaction = async (data) => {
 
     revalidatePath("/dashboard");
     revalidatePath(`/account/${transaction.accountId}`);
+    return { success: true, data: serializeAmount(transaction) };
   } catch (error) {
-    console.log(error.message || "Something went wrong");
+    throw new Error(error.message);
   }
 };
 
-function calculateNextRecurringDate(date, recurringInterval) {
-  const date = new Date(date);
+function calculateNextRecurringDate(startDate, recurringInterval) {
+  let date = new Date(startDate);
   switch (recurringInterval) {
     case "DAILY":
       date.setDate(date.getDate() + 1);
