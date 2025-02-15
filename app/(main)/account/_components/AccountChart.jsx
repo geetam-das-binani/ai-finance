@@ -15,7 +15,6 @@ import {
   BarChart,
   CartesianGrid,
   Legend,
-  Rectangle,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -128,7 +127,6 @@ const AccountChart = ({ transactions }) => {
       <div className="h-[300px]">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
-          
             data={filteredData}
             margin={{
               top: 10,
@@ -140,25 +138,15 @@ const AccountChart = ({ transactions }) => {
             <CartesianGrid strokeDasharray="3 3" vertical={false} />
             <XAxis dataKey="date" />
             <YAxis
-            fontSize={12}
-            tickLine={false}
-            axisLine={false}
-            tickFormatter={(value) => `$${value}`} 
+              fontSize={12}
+              tickLine={false}
+              axisLine={false}
+              tickFormatter={(value) => `$${value}`}
             />
-            <Tooltip formatter={(value) => [`$${value}`,undefined]}  />
+            <Tooltip formatter={(value) => [`$${value}`, undefined]} />
             <Legend />
-            <Bar
-              dataKey="income"
-              fill="#22c55e"
-              radius={[4,4,0,0]}
-              
-            />
-            <Bar
-              dataKey="expense"
-              fill="#ef4444"
-              radius={[4,4,0,0]}
-              
-            />
+            <Bar dataKey="income" fill="#22c55e" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="expense" fill="#ef4444" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>

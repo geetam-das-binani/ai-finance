@@ -114,7 +114,7 @@ const TransactionTable = ({ transactions }) => {
   useEffect(() => {
     if (!deleteLoading && deleted) {
       toast.success("Transactions deleted");
-      console.log("called");
+     
     }
   }, [deleteLoading, deleted]);
 
@@ -178,6 +178,7 @@ const TransactionTable = ({ transactions }) => {
     sortConfig.field,
   ]);
   const totalPages = Math.ceil(filterAndSortedTransactions.length / 10);
+  console.log(filterAndSortedTransactions)
   return (
     <div className="space-y-4">
       {deleteLoading && (

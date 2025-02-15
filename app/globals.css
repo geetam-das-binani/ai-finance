@@ -78,6 +78,7 @@ body {
   .gradient-title {
     @apply gradient font-extrabold tracking-tighter pr-2 pb-2 text-transparent bg-clip-text;
   }
+  
 }
 
 .hero-image-wrapper {
@@ -94,7 +95,9 @@ body {
   transform: rotateX(0deg) scale(1) translateY(40px);
 }
 
-/* @keyframes gradientMove {
+
+
+@keyframes gradientMove {
   0% {
     background-position: 0% 50%;
   }
@@ -110,4 +113,4 @@ body {
 .animate-gradient {
   background-size: 200% 200%;
   animation: gradientMove 3s ease infinite;
-} */
+}

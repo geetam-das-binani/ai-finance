@@ -16,6 +16,7 @@ export const useFetch = (cb) => {
         
         setData(response.data  || response.success);
       } catch (error) {
+        
         const errorMessage = error?.message || "Something went wrong";
         setError(errorMessage);
         

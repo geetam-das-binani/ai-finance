@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { useEffect } from "react";
 import { createTransaction } from "@/actions/transaction";
 import { transactionSchema } from "@/app/lib/schema";
 import {
@@ -25,6 +25,9 @@ import { CalendarIcon, Loader2 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import ReceiptScanner from "./ReceiptScanner";
 
 const AddTransactionForm = ({ accounts, categories }) => {
   const {
@@ -47,6 +50,7 @@ const AddTransactionForm = ({ accounts, categories }) => {
       isRecurring: false,
     },
   });
+  const router = useRouter();
   const {
     loading: transactionLoading,
     data: transactionResult,
@@ -57,20 +61,54 @@ const AddTransactionForm = ({ accounts, categories }) => {
   const type = watch("type");
   const isRecurring = watch("isRecurring");
   const date = watch("date");
+  const category = watch("category");
 
   const filteredCategories = categories.filter(
     (category) => category.type === type
   );
+  const onSubmit = async (data) => {
+    const formData = {
+      ...data,
+      amount: parseFloat(data.amount),
+    };
+
+    await createTransactionFn(formData);
+  };
+  const handleScanComplete = async (scannedData) => {
+    if (scannedData) {
+      const matchedCategory = categories.find(
+        (cat) => cat.id.toLowerCase() === scannedData.category.toLowerCase()
+      );
+      setValue("type", matchedCategory ? matchedCategory.type : "EXPENSE");
+      setValue("amount", scannedData.amount.toString());
+      setValue("description", scannedData.description || "");
+
+      setValue("date", new Date(scannedData.date));
+      setValue("category", matchedCategory ? matchedCategory.id : "");
+    }
+  };
+  useEffect(() => {
+    if (!transactionLoading && transactionResult) {
+      toast.success("Transaction created successfully");
+      reset();
+      router.push(`/account/${transactionResult?.accountId}`);
+    }
+  }, [transactionLoading, transactionResult]);
+  useEffect(() => {
+    if (!transactionLoading && transactionError) {
+      console.log(transactionError);
+      toast.error(transactionError);
+    }
+  }, [transactionLoading, transactionError]);
+
   return (
-    <form className="space-y-6">
+    <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
       {/* AI RECEIPT SCANNER  */}
+      <ReceiptScanner onScanComplete={handleScanComplete} />
 
       <div className="space-y-2">
         <label className="text-sm font-medium">Type</label>
-        <Select
-          onValueChange={(value) => setValue("type", value)}
-          defaultValue={type}
-        >
+        <Select onValueChange={(value) => setValue("type", value)} value={type}>
           <SelectTrigger>
             {" "}
             <SelectValue placeholder="Type" />
@@ -133,7 +171,7 @@ const AddTransactionForm = ({ accounts, categories }) => {
         <label className="text-sm font-medium">Category</label>
         <Select
           onValueChange={(value) => setValue("category", value)}
-          defaultValue={getValues("category")}
+          value={category}
         >
           <SelectTrigger>
             <SelectValue placeholder="Select Category" />
@@ -235,18 +273,18 @@ const AddTransactionForm = ({ accounts, categories }) => {
         >
           Cancel
         </Button>
-        {/* <Button type="submit" className="w-full" disabled={transactionLoading}>
-          {transactionLoading ? (
+        <Button type="submit" className="w-full" disabled={transactionLoading}>
+          {/* {transactionLoading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               {editMode ? "Updating..." : "Creating..."}
             </>
           ) : editMode ? (
             "Update Transaction"
-          ) : (
-            "Create Transaction"
-          )}
-        </Button> */}
+          ) : ( */}
+          Create Transaction
+          {/* )} */}
+        </Button>
       </div>
     </form>
   );

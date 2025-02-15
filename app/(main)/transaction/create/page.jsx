@@ -2,6 +2,7 @@ import { getUserAccounts } from "@/actions/dashboard";
 import { defaultCategories } from "@/data/categories";
 import React from "react";
 import AddTransactionForm from "./_components/AddTransactionForm";
+import { Toaster } from "sonner";
 
 const AddTransaction = async () => {
   const accounts = await getUserAccounts();
@@ -12,6 +13,7 @@ const AddTransaction = async () => {
       </h1>
 
       <AddTransactionForm accounts={accounts} categories={defaultCategories} />
+      <Toaster richColors />
     </div>
   );
 };
