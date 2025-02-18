@@ -101,3 +101,31 @@ export const getUserAccounts = async () => {
     console.log(error.message);
   }
 };
+
+export const getDashboardData = async () => {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Unauthorized");
+  try {
+    const user = await db.user.findUnique({
+      where: {
+        clerkUserId: userId,
+      },
+    });
+    if (!user) throw new Error("User not found");
+
+    const trasactions = await db.transaction.findMany({
+      where: {
+        userId: user.id,
+      },
+      orderBy: {
+        date: "desc",
+      },
+    });
+
+    const serializedAccounts = trasactions.map(serializeTransaction);
+
+    return serializedAccounts;
+  } catch (error) {
+    console.log(error.message);
+  }
+};

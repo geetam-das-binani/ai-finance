@@ -148,7 +148,7 @@ export const scanReceipt = async (file) => {
       .toString()
       .replace(/```(?:json)?\n?/g, "")
       .trim();
-  
+
     try {
       const data = JSON.parse(cleanedText);
       return {
@@ -168,5 +168,94 @@ export const scanReceipt = async (file) => {
   } catch (error) {
     console.error("Error scanning receipt:", error?.message);
     throw new Error("Failed to scan receipt");
+  }
+};
+
+export const getTransaction = async (id) => {
+  try {
+    const { userId } = await auth();
+    if (!userId) throw new Error("Unauthorized");
+    const user = await db.user.findUnique({
+      where: {
+        clerkUserId: userId,
+      },
+    });
+    if (!user) throw new Error("User not found");
+
+    const transaction = await db.transaction.findUnique({
+      where: {
+        id,
+        userId: user.id,
+      },
+    });
+    if (!transaction) throw new Error("Transaction not found");
+    return serializeAmount(transaction);
+  } catch (error) {
+    console.error("error fetching transaction");
+    throw new Error(error?.message);
+  }
+};
+
+export const updateTransaction = async (id, data) => {
+  try {
+    const { userId } = await auth();
+    if (!userId) throw new Error("Unauthorized");
+    const user = await db.user.findUnique({
+      where: {
+        clerkUserId: userId,
+      },
+    });
+    if (!user) throw new Error("User not found");
+
+    const transaction = await db.transaction.findUnique({
+      where: {
+        id,
+        userId: user.id,
+      },
+      include: {
+        account: true,
+      },
+    });
+    if (!transaction) throw new Error("Transaction not found");
+    const oldBalance =
+      transaction.type === "EXPENSE"
+        ? -transaction.amount.toNumber()
+        : transaction.amount.toNumber();
+    const newBalance = data.type === "EXPENSE" ? -data.amount : data.amount;
+    const netBalanceChange = newBalance - oldBalance;
+
+    const updatedTransaction = await db.$transaction(async (tx) => {
+      const updatedTransaction = await tx.transaction.update({
+        where: {
+          id,
+          userId: user.id,
+        },
+        data: {
+          ...data,
+          nextRecurringDate:
+            data.isRecurring && data.recurringInterval
+              ? calculateNextRecurringDate(data?.date, data?.recurringInterval)
+              : null,
+        },
+      });
+
+      await tx.account.update({
+        where: {
+          id: updatedTransaction.accountId,
+        },
+        data: {
+          balance: {
+            increment: netBalanceChange,
+          },
+        },
+      });
+      return updatedTransaction;
+    });
+    revalidatePath("/dashboard");
+    revalidatePath(`/account/${updatedTransaction.accountId}`);
+    return {success:true,data:serializeAmount(updatedTransaction)}
+  } catch (error) {
+    console.error("error updating transaction");
+    throw new Error(error?.message);
   }
 };
