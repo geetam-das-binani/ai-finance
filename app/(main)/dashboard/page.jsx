@@ -7,7 +7,7 @@ import AccountCard from "./_components/AccountCard";
 import { getCurrentBudget } from "@/actions/budget";
 import BudgetProgress from "./_components/BudgetProgress";
 import DashboardOverView from "./_components/DashboardOverView";
-import { checkBudgetAlert, generateMonthlyReports } from "@/app/lib/inngest/functions";
+import { checkBudgetAlert, generateMonthlyReports } from "@/app/lib/functions"
 
 const DashboardPage = async () => {
   const accounts = await getUserAccounts();
