@@ -1,11 +1,11 @@
-import { Inngest } from "inngest";
+// import { Inngest } from "inngest";
 
-// Create a client to send and receive events
-export const inngest = new Inngest({
-  id: "wealth",
+// // Create a client to send and receive events
+// export const inngest = new Inngest({
+//   id: "wealth",
 
-  retryFunction: async (attempt) => ({
-    delay: Math.pow(2, attempt) * 1000,
-    maxAttempts: 2,
-  }),
-});
+//   retryFunction: async (attempt) => ({
+//     delay: Math.pow(2, attempt) * 1000,
+//     maxAttempts: 2,
+//   }),
+// });
