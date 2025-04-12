@@ -107,7 +107,7 @@ npm run start
 - User authentication with Clerk
 - Financial dashboard and analytics
 - AI-powered receipts scanning
--Monthly Budget Alerts
+  -Monthly Budget Alerts
 - Financial monthly report insights using AI
--Responsive design
+  -Responsive design
 - Rate limiting on create transaction
