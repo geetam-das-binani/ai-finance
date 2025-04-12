@@ -98,7 +98,7 @@ export default function EmailTemplate({
                 {Object.entries(data?.stats.byCategory).map(
                   ([category, amount]) => (
                     <div key={category} style={styles.row}>
-                      <Text style={styles.text}>{category}</Text>
+                      <Text style={styles.text}>{category} </Text>
                       <Text style={styles.text}>${amount}</Text>
                     </div>
                   )
