@@ -1,4 +1,3 @@
-
 import { db } from "@/lib/prisma";
 import sendEmail from "@/actions/send-email";
 import EmailTemplate from "@/emails/template";
@@ -77,156 +76,110 @@ export const checkBudgetAlert = async () => {
 };
 
 // Trigger recurring transactions with batching
-// export const triggerRecurringTransactions = inngest.createFunction(
-//   {
-//     id: "trigger-recurring-transactions", // Unique ID,
-//     name: "Trigger Recurring Transactions",
-//   },
-//   { cron: "0 0 * * *" }, // Daily at midnight
-//   async ({ step }) => {
-//     const recurringTransactions = await step.run(
-//       "fetch-recurring-transactions",
-//       async () => {
-//         return await db.transaction.findMany({
-//           where: {
-//             isRecurring: true,
-//             status: "COMPLETED",
-//             OR: [
-//               { lastProcessed: null },
-//               {
-//                 nextRecurringDate: {
-//                   lte: new Date(), // due date passed
-//                 },
-//               },
-//             ],
-//           },
-//         });
-//       }
-//     );
+export const triggerRecurringTransactions = async () => {
+  const recurringTransactions = await db.transaction.findMany({
+    where: {
+      isRecurring: true,
+      status: "COMPLETED",
+      OR: [
+        { lastProcessed: null },
+        {
+          nextRecurringDate: {
+            lte: new Date(), // due date passed
+          },
+        },
+      ],
+    },
+  });
 
-//     // Send event for each recurring transaction in batches
-//     if (recurringTransactions.length > 0) {
-//       const events = recurringTransactions.map((transaction) => ({
-//         name: "transaction.recurring.process",
-//         data: {
-//           transactionId: transaction.id,
-//           userId: transaction.userId,
-//         },
-//       }));
+  if (!recurringTransactions.length) return;
 
-//       // Send events directly using inngest.send()
-//       await inngest.send(events);
-//     }
+  for (const transaction of recurringTransactions) {
+    const singleTransaction = await db.transaction.findUnique({
+      where: {
+        id: transaction.id,
+        userId: transaction.userId,
+      },
+    });
 
-//     return { triggered: recurringTransactions.length };
-//   }
-// );
-// export const processRecurringTransaction = inngest.createFunction(
-//   {
-//     id: "process-recurring-transaction",
-//     name: "Process Recurring Transaction",
-//     throttle: {
-//       limit: 10, // Process 10 transactions
-//       period: "1m", // per minute
-//       key: "event.data.userId", // Throttle per user
-//     },
-//   },
-//   { event: "transaction.recurring.process" },
-//   async ({ event, step }) => {
-//     if (!event?.data?.transactionId || !event?.data?.userId) {
-//       console.error("Missing transactionId or userId in event data", event);
-//       return { error: "Missing transactionId or userId in event data" };
-//     }
+    if (!singleTransaction || !isTransactionDue(singleTransaction)) continue;
 
-//     await step.run("process-transaction", async () => {
-//       const transaction = await db.transaction.findUnique({
-//         where: {
-//           id: event.data.transactionId,
-//           userId: event.data.userId,
-//         },
-//         include: {
-//           account: true,
-//         },
-//       });
+    await db.$transaction(async (tx) => {
+      await tx.transaction.create({
+        data: {
+          amount: singleTransaction.amount,
+          type: singleTransaction.type,
+          accountId: singleTransaction.accountId,
+          userId: singleTransaction.userId,
+          category: singleTransaction.category,
+          date: new Date(),
+          isRecurring: false,
+          description: `${singleTransaction.description} (Recurring)`,
+        },
+      });
 
-//       if (!transaction || !isTransactionDue(transaction)) return;
+      const balanceChange =
+        singleTransaction.type === "EXPENSE"
+          ? -singleTransaction.amount.toNumber()
+          : singleTransaction.amount.toNumber();
 
-//       await db.$transaction(async (tx) => {
-//         // create new transaction
-//         await tx.transaction.create({
-//           data: {
-//             amount: transaction.amount,
-//             type: transaction.type,
-//             accountId: transaction.accountId,
-//             userId: transaction.userId,
-//             category: transaction.category,
-//             date: new Date(),
-//             isRecurring: false,
-//             description: `${transaction.description} (Recurring)`,
-//           },
-//         });
-//         const balanceChange =
-//           transaction.type === "EXPENSE"
-//             ? -transaction.amount.toNumber()
-//             : transaction.amount.toNumber();
+      await tx.account.update({
+        where: {
+          id: singleTransaction.accountId,
+        },
+        data: {
+          balance: {
+            increment: balanceChange,
+          },
+        },
+      });
 
-//         await tx.account.update({
-//           where: {
-//             id: transaction.accountId,
-//           },
-//           data: {
-//             balance: {
-//               increment: balanceChange,
-//             },
-//           },
-//         });
+      await tx.transaction.update({
+        where: {
+          id: singleTransaction.id,
+        },
+        data: {
+          lastProcessed: new Date(),
+          nextRecurringDate: calculateNextRecurringDate(
+            new Date(),
+            singleTransaction.recurringInterval
+          ),
+        },
+      });
+    });
+  }
+};
 
-//         await tx.transaction.update({
-//           where: {
-//             id: transaction.id,
-//           },
-//           data: {
-//             lastProcessed: new Date(),
-//             nextRecurringDate: calculateNextRecurringDate(
-//               new Date(),
-//               transaction.recurringInterval
-//             ),
-//           },
-//         });
-//       });
-//     });
-//   }
-// );
-// function isTransactionDue(transaction) {
-//   if (!transaction.lastProcessed) return true;
+function isTransactionDue(transaction) {
+  // if (!transaction.lastProcessed) return true;
 
-//   const today = new Date();
-//   const nextDueDate = new Date(transaction.nextRecurringDate);
+  const today = new Date();
+  const nextDueDate = new Date(transaction.nextRecurringDate);
 
-//   // Compare with next due date
-//   return nextDueDate <= today;
-// }
+  // Compare with next due date
+  return nextDueDate <= today;
+}
 
-// function calculateNextRecurringDate(date, interval) {
-//   const nextDate = new Date(date);
+function calculateNextRecurringDate(date, interval) {
+  const nextDate = new Date(date);
 
-//   switch (interval) {
-//     case "DAILY":
-//       nextDate.setDate(nextDate.getDate() + 1);
-//       break;
-//     case "WEEKLY":
-//       nextDate.setDate(nextDate.getDate() + 7);
-//       break;
-//     case "MONTHLY":
-//       nextDate.setMonth(nextDate.getMonth() + 1);
-//       break;
-//     case "YEARLY":
-//       nextDate.setFullYear(nextDate.getFullYear() + 1);
-//       break;
-//   }
+  switch (interval) {
+    case "DAILY":
+      nextDate.setDate(nextDate.getDate() + 1);
+      break;
+    case "WEEKLY":
+      nextDate.setDate(nextDate.getDate() + 7);
+      break;
+    case "MONTHLY":
+      nextDate.setMonth(nextDate.getMonth() + 1);
+      break;
+    case "YEARLY":
+      nextDate.setFullYear(nextDate.getFullYear() + 1);
+      break;
+  }
 
-//   return nextDate;
-// }
+  return nextDate;
+}
 
 async function getMonthlyStats(userId, month) {
   const startDate = new Date(month.getFullYear(), month.getMonth(), 1);
@@ -347,7 +300,6 @@ export const generateMonthlyReports = async () => {
 
   return { processed: users.length };
 };
-
 
 function isNewMonth(lastAlertDate, currentDate) {
   return (

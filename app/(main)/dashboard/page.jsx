@@ -7,7 +7,7 @@ import AccountCard from "./_components/AccountCard";
 import { getCurrentBudget } from "@/actions/budget";
 import BudgetProgress from "./_components/BudgetProgress";
 import DashboardOverView from "./_components/DashboardOverView";
-import { checkBudgetAlert, generateMonthlyReports } from "@/app/lib/functions"
+import { checkBudgetAlert, generateMonthlyReports, triggerRecurringTransactions } from "@/app/lib/functions"
 
 const DashboardPage = async () => {
   const accounts = await getUserAccounts();
@@ -22,7 +22,8 @@ const DashboardPage = async () => {
   const transactions = await getDashboardData();
 
    checkBudgetAlert();
-   generateMonthlyReports()
+   generateMonthlyReports();
+   triggerRecurringTransactions();
 
   return (
     <div className="space-y-8">
