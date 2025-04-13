@@ -108,6 +108,6 @@ npm run start
 - AI-powered receipts scanning
 - Monthly Budget Alerts
 - Financial monthly report insights using AI
--Automatic Recurring Transaction
+- Automatic Recurring Transaction
 - Responsive design
 - Rate limiting on create transaction
